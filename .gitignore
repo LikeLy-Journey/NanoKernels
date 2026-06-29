@@ -1,0 +1,22 @@
+# Build artifacts
+*.o
+*.out
+vadd_cuda
+vadd_cpu
+transpose_cuda
+transpose_cpu
+**/cpu/*_cpu
+**/cuda/*_cuda
+
+# Profiling reports
+*.nsys-rep
+*.sqlite
+*.ncu-rep
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor / OS
+.DS_Store
+.vscode/
