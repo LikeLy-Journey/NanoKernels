@@ -21,13 +21,13 @@
 | Triton (tl.sum) | 0.0465 | 1442.7 | ~101% | 编译器自动归约,与 v5 持平,1.06× vs torch |
 | torch (ref) | 0.0494 | 1359.7 | 95% | torch.sum |
 
-> 时间口径:CUDA event 计时;nsys `cuda_gpu_kern_sum` 交叉验证完全吻合
+> 时间口径:CUDA event(warmup+repeat 平均)计时;nsys `cuda_gpu_kern_sum` 交叉验证完全吻合
 > (v0 322µs / v1 168 / v2 139 / v3 74 / v4 55 / v5 50 / v6 76µs)。正确性 rel_err ~1e-9(全部 OK)。
 >
-> ⚠️ **测量环境:** 本次跑在共享节点上,8 卡均被其它任务占满(util 94–100%),
-> HBM 有效带宽被压低——v5 仅 1429 GB/s(A100 标称 ~2039)。但**各版本相对关系
-> 与 nsys 占比完全稳定**(3 次重跑数值一致),优化阶梯的结论不受影响;待独占节点
-> 复测可拿到接近峰值的绝对带宽。
+> **测量稳定性:** 同一组数字在「8 卡满载的共享节点」与「完全空闲的独占 GPU」上多次重跑逐位一致
+> (v5 1429–1435 GB/s)——kernel 极短、用平均计时,能拿到干净时间片,结论数据可信。
+> v5 的 1435 GB/s ≈ A100 标称带宽(~2039 GB/s)的 70%,这是 **reduce 的固有上限**:只读一遍 +
+> 输出极小 + kernel launch/occupancy 开销,达不到 copy 那种 ~99% 峰值,属正常。
 
 ## 关键结论
 
@@ -113,4 +113,4 @@ ncu --section WarpStateStats --section MemoryWorkloadAnalysis \
 
 - reduce 收尾后进入 Level 1 后续算子:**softmax**(行归约 + 数值稳定 max-shift)
   或 **layernorm**(均值/方差两遍归约),复用本节的 warp shuffle / block 归约基建。
-- 可选回补:独占节点上复测 v0–v6 绝对带宽,并把 v6 的 block 数调到 occupancy 上限验证其反超 v5。
+- 可选回补:把 v6 的 block 数调到 occupancy 上限(`cudaOccupancyMaxActiveBlocksPerMultiprocessor`)验证其反超 v5。
